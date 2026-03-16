@@ -18,26 +18,27 @@ def read_code(filepath: str) -> str:
 
 
 @function_tool
-def search_cve(library_name: str) -> str:
+def search_cve(library_name: str, ecosystem: str = "PyPI") -> str:
     """Search for known security vulnerabilities (CVEs) for a given library.
     Args:
-        library_name: The name of the library or package (e.g., 'requests', 'django').
+        library_name: The name of the library or package (e.g., 'requests', 'react').
+        ecosystem: The package ecosystem (e.g., 'PyPI', 'npm', 'Maven', 'NuGet', 'Packagist', 'RubyGems', 'crates.io'). Defaults to 'PyPI'.
     """
     try:
         url = "https://api.osv.dev/v1/query"
         payload = {
-            "package": {"name": library_name.lower(), "ecosystem": "PyPI"}
+            "package": {"name": library_name.lower(), "ecosystem": ecosystem}
         }
         response = requests.post(url, json=payload, timeout=10)
         
         if response.status_code != 200:
-            return f"Service indisponible ou erreur lors de la recherche de vulnérabilités pour {library_name}."
+            return f"Service indisponible ou erreur lors de la recherche de vulnérabilités pour {library_name} dans {ecosystem}."
             
         data = response.json()
         vulns = data.get("vulns", [])
         
         if not vulns:
-            return f"Aucune vulnérabilité publique connue (CVE) trouvée pour '{library_name}' sur OSV/PyPI."
+            return f"Aucune vulnérabilité publique connue (CVE) trouvée pour '{library_name}' sur OSV/{ecosystem}."
             
         # Extract at most the top 3 vulnerabilities to avoid exceeding token limits
         report = []

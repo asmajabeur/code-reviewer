@@ -73,7 +73,7 @@ st.markdown(
     Ce système utilise une équipe d'agents spécialisés (Logique, Sécurité, Style) 
     coordonnés par un **Orchestrateur** pour analyser votre code source en profondeur.
     
-    👉 **Instructions :** Chargez un fichier Python (`.py`), ou tapez directement 
+    👉 **Instructions :** Chargez un fichier de code (React, Java, Python, C#, etc.), ou tapez directement 
     votre code dans la zone de texte prévue à cet effet.
     """
 )
@@ -119,16 +119,16 @@ with col_main:
     st.header("📄 Source à analyser")
     if input_method == "Importer un fichier":
         # Composant Streamlit permettant de charger un fichier
-        uploaded_file = st.file_uploader("Choisissez un fichier Python (.py)", type=["py", "txt", "md"])
+        uploaded_file = st.file_uploader("Choisissez un fichier de code", type=["py", "js", "jsx", "ts", "tsx", "java", "cs", "cpp", "c", "php", "rb", "txt", "md"])
         
         if uploaded_file is not None:
             # Si un fichier est chargé, on l'affiche pour confirmation dans un expander pour gagner de la place
             code_content = uploaded_file.getvalue().decode("utf-8")
             with st.expander("👁️ Voir le contenu du fichier", expanded=True):
-                st.code(code_content, language="python")
+                st.code(code_content)
 
             # Enregistrement temporaire sur le disque
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as tmp_file:
                 tmp_file.write(code_content)
                 filepath_to_analyze = tmp_file.name
         else:
@@ -136,11 +136,11 @@ with col_main:
 
     elif input_method == "Taper du code manuellement":
         # Composant Streamlit permettant de taper du texte libre
-        code_content = st.text_area("Tapez ou collez votre code ici :", height=250, placeholder="def ma_fonction():\n    pass")
+        code_content = st.text_area("Tapez ou collez votre code ici :", height=250, placeholder="Ex: const sayHello = () => { console.log('Hello World!'); }")
         
         if code_content.strip():
             # Si la zone de texte n'est pas vide, on crée également un fichier temporaire
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8') as tmp_file:
                 tmp_file.write(code_content)
                 filepath_to_analyze = tmp_file.name
         else:
