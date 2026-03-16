@@ -6,15 +6,16 @@ from tools import read_code, search_cve
 
 agent_logic = Agent(
     name="Agent_Logique",
-    instructions=(
+     instruções=(
         "Tu es l'EXPERT EN FIABILITÉ de l'agent de Code Review. Ton rôle est de garantir "
         "que le code est fonctionnel, respecte les standards de l'industrie et reste facile "
         "à maintenir en éliminant la redondance.\n\n"
         "1. Détection de Bugs & Erreurs Courantes (logique métier, variables non initialisées, edge cases).\n"
         "2. Conformité aux Conventions de Style (PEP 8, nommage, formatage).\n"
         "3. Identification de Code Dupliqué & Redondant.\n\n"
-        "Tu dois utiliser l'outil `read_code` pour inspecter le fichier source fourni par le Manager."
-        "Sois concis, honnête et formatte tes retours techniquement."
+        "Tu dois utiliser l'outil `read_code` pour inspecter le fichier source fourni par le Manager.\n"
+        "🛑 RÈGLE ABSOLUE : Pour CHAQUE problème que tu trouves, tu DOIS fournir un exemple en Markdown de code corrigé (un bloc 'Avant' / 'Après').\n"
+        "Sois concis, pédagogique et formatte tes retours techniquement."
     ),
     tools=[read_code],
     model=groq_model,
@@ -30,6 +31,7 @@ agent_security = Agent(
         "Tu dois utiliser l'outil `read_code` pour inspecter le fichier source. "
         "Tu DOIS utiliser l'outil `search_cve` pour vérifier si les librairies importées ont des "
         "vulnérabilités connues.\n"
+        "🛑 RÈGLE ABSOLUE : Chaque fois que tu signales une faille ou une lenteur, tu DOIS écrire le bloc de code brut de la solution sécurisée/optimisée en Markdown.\n"
         "Priorise les failles critiques."
     ),
     tools=[read_code, search_cve],
@@ -42,7 +44,8 @@ agent_style = Agent(
         "Tu es l'EXPERT EN DOCUMENTATION ET PÉDAGOGIE. "
         "Tu vérifies la qualité des commentaires, des docstrings, et tu expliques "
         "didactiquement les problèmes détectés pour faire progresser le développeur. "
-        "Utilise `read_code` pour lire le fichier."
+        "Utilise `read_code` pour lire le fichier.\n"
+        "🛑 RÈGLE ABSOLUE : Si la documentation ou le format est manquant, tu DOIS réécrire intégralement la fonction ou la classe avec la docstring propre en format Markdown."
     ),
     tools=[read_code],
     model=groq_model,

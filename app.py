@@ -99,41 +99,54 @@ async def lancer_processus_code_review(filepath_to_review: str):
 # ==========================================
 # INTERFACE UTILISATEUR : UPLOAD OU SAISIE
 # ==========================================
-st.sidebar.header("⚙️ Options d'Analyse")
 
-# Option pour le mode d'entrée du code
-input_method = st.sidebar.radio(
-    "Comment souhaitez-vous fournir le code ?", 
-    ("Importer un fichier", "Taper du code manuellement")
-)
+# Utilisation de colonnes pour séparer les options du contenu principal
+col_options, col_main = st.columns([1, 2], gap="large")
 
-# Variable qui contiendra le chemin d'accès au fichier à analyser
-filepath_to_analyze = None
-
-if input_method == "Importer un fichier":
-    # Composant Streamlit permettant de charger un fichier
-    uploaded_file = st.file_uploader("Choisissez un fichier Python", type=["py", "txt", "md"])
+with col_options:
+    st.header("⚙️ Entrée du code")
+    st.info("Sélectionnez la méthode pour fournir votre code source.")
     
-    if uploaded_file is not None:
-        # Si un fichier est chargé, on l'affiche pour confirmation
-        code_content = uploaded_file.getvalue().decode("utf-8")
-        st.subheader("📄 Aperçu du fichier chargé")
-        st.code(code_content, language="python")
-
-        # Pour que les agents locaux puissent lire le fichier, on l'enregistre temporairement sur le disque
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
-            tmp_file.write(code_content)
-            filepath_to_analyze = tmp_file.name
-
-elif input_method == "Taper du code manuellement":
-    # Composant Streamlit permettant de taper du texte libre
-    code_content = st.text_area("Tapez ou collez votre code ici :", height=300)
+    # Option pour le mode d'entrée du code
+    input_method = st.radio(
+        "Comment souhaitez-vous fournir le code ?", 
+        ("Importer un fichier", "Taper du code manuellement")
+    )
     
-    if code_content.strip():
-        # Si la zone de texte n'est pas vide, on crée également un fichier temporaire
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
-            tmp_file.write(code_content)
-            filepath_to_analyze = tmp_file.name
+    filepath_to_analyze = None
+
+with col_main:
+    st.header("📄 Source à analyser")
+    if input_method == "Importer un fichier":
+        # Composant Streamlit permettant de charger un fichier
+        uploaded_file = st.file_uploader("Choisissez un fichier Python (.py)", type=["py", "txt", "md"])
+        
+        if uploaded_file is not None:
+            # Si un fichier est chargé, on l'affiche pour confirmation dans un expander pour gagner de la place
+            code_content = uploaded_file.getvalue().decode("utf-8")
+            with st.expander("👁️ Voir le contenu du fichier", expanded=True):
+                st.code(code_content, language="python")
+
+            # Enregistrement temporaire sur le disque
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
+                tmp_file.write(code_content)
+                filepath_to_analyze = tmp_file.name
+        else:
+            st.warning("👈 Veuillez charger un fichier dans la colonne de gauche.")
+
+    elif input_method == "Taper du code manuellement":
+        # Composant Streamlit permettant de taper du texte libre
+        code_content = st.text_area("Tapez ou collez votre code ici :", height=250, placeholder="def ma_fonction():\n    pass")
+        
+        if code_content.strip():
+            # Si la zone de texte n'est pas vide, on crée également un fichier temporaire
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w', encoding='utf-8') as tmp_file:
+                tmp_file.write(code_content)
+                filepath_to_analyze = tmp_file.name
+        else:
+            st.warning("Tapez du code ci-dessus pour activer l'analyse.")
+
+st.divider() # Ligne de séparation esthétique
 
 # ==========================================
 # BOUTON DE LANCEMENT DE L'ANALYSE

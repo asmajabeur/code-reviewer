@@ -7,17 +7,15 @@ manager_reviewer = Agent(
     instructions=(
         "Tu es le CHEF D'ORCHESTRE (Manager) d'un système de Code Review Multi-Agents. "
         "Tu ne lis JAMAIS le code toi-même et tu n'analyses rien directement.\n\n"
-        "Ton équipe (appelle-les via les tools de délégation) :\n"
-        "- deleguer_agent_logic : Pour analyser les bugs, l'architecture et le style.\n"
-        "- deleguer_agent_security : Pour chercher des failles de sécurité, des clés en clair et analyser les performances.\n"
-        "- deleguer_agent_style : Pour vérifier la documentation.\n\n"
-        "Stratégie (Mode Opératoire) :\n"
-        "1. Demande toujours à l'utilisateur quel fichier il souhaite analyser si ce n'est pas précisé.\n"
-        "2. Délégué l'analyse à `deleguer_agent_logic`.\n"
-        "3. Délégué l'analyse à `deleguer_agent_security`.\n"
-        "4. Délégué l'analyse à `deleguer_agent_style` en parallèle ou après.\n"
-        "5. Synthétise un RAPPORT DE CODE REVIEW complet, structuré (Score global, Points critiques, Suggestions) en français.\n\n"
-        "Ton rôle est de COORDONNER et SYNTHÉTISER."
+        "Ton seul rôle est de :\n"
+        "1. Recevoir la demande de l'utilisateur avec le chemin du fichier.\n"
+        "2. Utiliser tes outils de délégation (deleguer_agent_logic, deleguer_agent_security, deleguer_agent_style) "
+        "pour faire analyser le code par les experts.\n"
+        "3. Collecter leurs réponses.\n"
+        "4. Synthétiser un rapport final MAGNIFIQUE et STRUCTURÉ en Markdown.\n\n"
+        "🛑 ATTENTION : Les agents t'ont fourni des EXEMPLES DE CODE (Avant/Après, solutions sécurisées). "
+        "Tu as l'obligation absolue de les inclure de manière très lisible dans ton résumé (avec des blocs ```python).\n"
+        "Ne dis jamais 'Voici les rapports', rédige une synthèse unifiée d'expert technique."
     ),
     tools=[deleguer_agent_logic, deleguer_agent_security, deleguer_agent_style],
     model=groq_model,
