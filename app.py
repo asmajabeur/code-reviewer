@@ -86,7 +86,9 @@ async def lancer_processus_code_review(filepath_to_review: str):
     Fonction asynchrone qui appelle le Runner de 'openai-agents'.
     L'orchestrateur (manager_reviewer) reçoit la directive de lire et d'analyser le fichier.
     """
-    prompt_initial = f"Peux-tu analyser le fichier suivant et me faire un rapport complet : {filepath_to_review}"
+    # Formater le chemin pour éviter les bugs d'échappement JSON (API Groq + Windows)
+    filepath_clean = filepath_to_review.replace("\\", "/")
+    prompt_initial = f"Peux-tu analyser le fichier suivant et me faire un rapport complet : {filepath_clean}"
     
     # Runner.run démarre la boucle multi-agents de l'Orchestrateur
     result = await Runner.run(

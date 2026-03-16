@@ -61,7 +61,8 @@ async def deleguer_agent_logic(filepath: str) -> str:
     Args:
         filepath: Le chemin vers le fichier de code à analyser.
     """
-    result = await Runner.run(agent_logic, input=f"Analyse ce fichier: {filepath}", max_turns=5)
+    filepath_clean = filepath.replace("\\", "/")
+    result = await Runner.run(agent_logic, input=f"Analyse ce fichier: {filepath_clean}", max_turns=5)
     return result.final_output
 
 
@@ -71,7 +72,8 @@ async def deleguer_agent_security(filepath: str) -> str:
     Args:
         filepath: Le chemin vers le fichier de code à analyser.
     """
-    result = await Runner.run(agent_security, input=f"Analyse la sécurité de ce fichier: {filepath}", max_turns=5)
+    filepath_clean = filepath.replace("\\", "/")
+    result = await Runner.run(agent_security, input=f"Analyse la sécurité de ce fichier: {filepath_clean}", max_turns=5)
     return result.final_output
 
 
@@ -81,5 +83,6 @@ async def deleguer_agent_style(filepath: str) -> str:
     Args:
         filepath: Le chemin vers le fichier de code à analyser.
     """
-    result = await Runner.run(agent_style, input=f"Vérifie la documentation de ce fichier: {filepath}", max_turns=5)
+    filepath_clean = filepath.replace("\\", "/")
+    result = await Runner.run(agent_style, input=f"Vérifie la documentation de ce fichier: {filepath_clean}", max_turns=5)
     return result.final_output
