@@ -1047,7 +1047,7 @@ async function startAnalysis() {
 
   try {
       // Démarrer la file d'attente fetch en toile de fond sur l'API cachée
-      const fetchPromise = fetch('http://localhost:8000/analyze', {
+      const fetchPromise = fetch('/analyze', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(payload)
