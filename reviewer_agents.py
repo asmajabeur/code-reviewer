@@ -1,42 +1,34 @@
-from agents import Agent, Runner, function_tool
+from agents import Agent, Runner
 from config import groq_model
-from tools import read_code, search_cve
+from tools import search_cve
 
 # ── 1. AGENTS SPÉCIALISÉS ──
 
 agent_logic = Agent(
     name="Agent_Logique",
      instructions=(
-        "Tu es l'EXPERT EN FIABILITÉ de l'agent de Code Review. Ton rôle est de garantir "
-        "que le code est fonctionnel, respecte les standards de l'industrie et reste facile "
-        "à maintenir en éliminant la redondance.\n\n"
-        "1. IDENTIFIE IMMÉDIATEMENT LE LANGAGE DE PROGRAMMATION du code analysé (React, Java, Python, C#, etc.).\n"
+        "Tu es l'EXPERT EN FIABILITÉ. Ton rôle est de garantir que le code fourni est fonctionnel, "
+        "respecte les standards de l'industrie et reste facile à maintenir.\n\n"
+        "1. IDENTIFIE IMMÉDIATEMENT LE LANGAGE DE PROGRAMMATION du code analysé.\n"
         "2. Détection de Bugs & Erreurs Courantes propres à ce langage.\n"
-        "3. Conformité aux Conventions de Style spécifiques du langage détecté (ex: ESLint pour JS/React, Checkstyle pour Java, PEP8 pour Python).\n"
+        "3. Conformité aux Conventions de Style spécifiques du langage détecté.\n"
         "4. Identification de Code Dupliqué & Redondant.\n\n"
-        "Tu dois utiliser l'outil `read_code` pour inspecter le fichier source fourni par le Manager.\n"
         "🛑 RÈGLE ABSOLUE : Pour CHAQUE problème que tu trouves, tu DOIS fournir un exemple en Markdown de code corrigé (un bloc 'Avant' / 'Après').\n"
         "Sois concis, pédagogique et formatte tes retours techniquement."
     ),
-    tools=[read_code],
     model=groq_model,
 )
 
 agent_security = Agent(
     name="Agent_Securite",
     instructions=(
-        "Tu es l'EXPERT EN PROTECTION ET OPTIMISATION de l'agent de Code Review. Ton rôle est de garantir "
-        "que le code est invulnérable aux attaques et efficace.\n\n"
-        "1. IDENTIFIE LE LANGAGE DE PROGRAMMATION du code et les écosystèmes utilisés (React/npm, Java/Maven, Python/PyPI, C#/NuGet, etc.).\n"
+        "Tu es l'EXPERT EN PROTECTION ET OPTIMISATION. Ton rôle est de garantir que le code est invulnérable aux attaques et efficace.\n\n"
+        "1. IDENTIFIE LE LANGAGE DE PROGRAMMATION du code et les écosystèmes utilisés.\n"
         "2. Vérification de la Sécurité spécifique au langage : Injections SQL, XSS, CSRF, secrets exposés en clair.\n"
         "3. Analyse de Performance : Complexité algorithmique O(n), boucles inefficaces, fuites.\n\n"
-        "Tu dois utiliser l'outil `read_code` pour inspecter le fichier source. "
-        "Tu DOIS utiliser l'outil `search_cve` pour vérifier si les librairies importées ont des "
-        "vulnérabilités connues. Tu devineras le bon 'ecosystem' (npm, PyPI, Maven, NuGet, etc.) à envoyer à search_cve selon le langage du code.\n"
         "🛑 RÈGLE ABSOLUE : Chaque fois que tu signales une faille ou une lenteur, tu DOIS écrire le bloc de code brut de la solution sécurisée/optimisée en Markdown.\n"
         "Priorise les failles critiques."
     ),
-    tools=[read_code, search_cve],
     model=groq_model,
 )
 
@@ -45,44 +37,27 @@ agent_style = Agent(
     instructions=(
         "Tu es l'EXPERT EN DOCUMENTATION ET PÉDAGOGIE. "
         "Tu vérifies la qualité des commentaires, des docstrings, et tu expliques "
-        "didactiquement les problèmes détectés pour faire progresser le développeur. "
-        "Utilise `read_code` pour lire le fichier.\n"
+        "didactiquement les problèmes détectés pour faire progresser le développeur.\n"
         "🛑 RÈGLE ABSOLUE : Si la documentation ou le format est manquant, tu DOIS réécrire intégralement la fonction ou la classe avec la docstring propre en format Markdown."
     ),
-    tools=[read_code],
     model=groq_model,
 )
 
-# ── 2. TOOLS DE DÉLÉGATION (Pattern agents-as-tools) ──
+# ── 2. FONCTIONS DE DÉLÉGATION DIRECTES (No-Tools Pattern) ──
 
-@function_tool
-async def deleguer_agent_logic(filepath: str) -> str:
-    """Délègue l'analyse d'un fichier source à l'Agent Logique pour chercher les bugs, redondances et problèmes de style de code.
-    Args:
-        filepath: Le chemin vers le fichier de code à analyser.
-    """
-    filepath_clean = filepath.replace("\\", "/")
-    result = await Runner.run(agent_logic, input=f"Analyse ce fichier: {filepath_clean}", max_turns=5)
+async def deleguer_agent_logic(code: str, filename: str) -> str:
+    """Délègue l'analyse à l'Agent Logique via Injection Directe."""
+    result = await Runner.run(agent_logic, input=f"Analyse ce code ({filename}):\n\n```\n{code}\n```", max_turns=2)
     return result.final_output
 
 
-@function_tool
-async def deleguer_agent_security(filepath: str) -> str:
-    """Délègue l'analyse d'un fichier source à l'Agent Sécurité pour chercher les failles (SQLi, XSS, secrets en clair) et problèmes de performances.
-    Args:
-        filepath: Le chemin vers le fichier de code à analyser.
-    """
-    filepath_clean = filepath.replace("\\", "/")
-    result = await Runner.run(agent_security, input=f"Analyse la sécurité de ce fichier: {filepath_clean}", max_turns=5)
+async def deleguer_agent_security(code: str, filename: str) -> str:
+    """Délègue l'analyse à l'Agent Sécurité via Injection Directe."""
+    result = await Runner.run(agent_security, input=f"Analyse la sécurité de ce code ({filename}):\n\n```\n{code}\n```", max_turns=2)
     return result.final_output
 
 
-@function_tool
-async def deleguer_agent_style(filepath: str) -> str:
-    """Délègue l'analyse d'un fichier source à l'Agent Style/Doc pour vérifier la qualité de la documentation et la pédagogie.
-    Args:
-        filepath: Le chemin vers le fichier de code à analyser.
-    """
-    filepath_clean = filepath.replace("\\", "/")
-    result = await Runner.run(agent_style, input=f"Vérifie la documentation de ce fichier: {filepath_clean}", max_turns=5)
+async def deleguer_agent_style(code: str, filename: str) -> str:
+    """Délègue l'analyse à l'Agent Style via Injection Directe."""
+    result = await Runner.run(agent_style, input=f"Vérifie la documentation de ce code ({filename}):\n\n```\n{code}\n```", max_turns=2)
     return result.final_output

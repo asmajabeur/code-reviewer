@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Code Review</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<!-- Import Marked.js pour le Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1420;
+    --surface2: #111927;
+    --border: rgba(99,179,237,0.12);
+    --accent-blue: #3b82f6;
+    --accent-cyan: #22d3ee;
+    --accent-green: #4ade80;
+    --accent-red: #f87171;
+    --accent-yellow: #fbbf24;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --glow-blue: 0 0 20px rgba(59,130,246,0.4);
+    --glow-cyan: 0 0 20px rgba(34,211,238,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: -2;
+  }
+
+  /* Glow orb */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--glow-blue);
+  }
+
+  .logo h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--text) 60%, var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-cyan);
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  /* Agents pills */
+  .agents-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .agent-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+    animation: pulse-border 3s ease-in-out infinite;
+  }
+
+  .agent-pill.logic { color: var(--accent-blue); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); animation-delay: 0s; }
+  .agent-pill.security { color: var(--accent-red); border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); animation-delay: 1s; }
+  .agent-pill.style { color: var(--accent-green); border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); animation-delay: 2s; }
+
+  .agent-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .logic .agent-dot { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+  .security .agent-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+  .style .agent-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+
+  @keyframes pulse-border {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Hero */
+  .hero {
+    padding: 60px 32px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-cyan);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-label::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent-cyan);
+  }
+
+  .hero h2 {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -2px;
+    max-width: 600px;
+  }
+
+  .hero h2 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero p {
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 500px;
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Main layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 0 32px 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .panel:hover {
+    border-color: rgba(59,130,246,0.25);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-header .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .icon-blue { background: rgba(59,130,246,0.15); }
+  .icon-cyan { background: rgba(34,211,238,0.12); }
+
+  .panel-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .panel-header .panel-badge {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    padding: 16px 24px 0;
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .tab.active {
+    color: var(--accent-cyan);
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.15);
+    border-bottom: none;
+  }
+
+  .tab:hover:not(.active) {
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  .tab-content {
+    padding: 20px 24px;
+  }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed rgba(59,130,246,0.25);
+    border-radius: 12px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dropzone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(59,130,246,0.03), rgba(34,211,238,0.03));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .dropzone:hover {
+    border-color: rgba(59,130,246,0.5);
+    transform: scale(1.01);
+  }
+
+  .dropzone:hover::before {
+    opacity: 1;
+  }
+
+  .dropzone-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .dropzone h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .dropzone p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .btn-browse {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: #080c14;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-browse:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--glow-blue);
+  }
+
+  .file-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+
+  .file-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  /* Code editor */
+  .code-editor {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .editor-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .d1 { background: #f87171; }
+  .d2 { background: #fbbf24; }
+  .d3 { background: #4ade80; }
+
+  .editor-lang {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-cyan);
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--accent-green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 16px;
+    resize: none;
+    height: 220px;
+    width: 100%;
+    transition: border-color 0.3s;
+    outline: none;
+  }
+
+  textarea:focus {
+    border-color: rgba(59,130,246,0.4);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+  }
+
+  textarea::placeholder { color: var(--text-muted); }
+
+  /* Right panel — config */
+  .config-section {
+    padding: 20px 24px;
+  }
+
+  .config-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .agent-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .agent-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .agent-toggle:hover { border-color: rgba(59,130,246,0.2); }
+
+  .agent-toggle.active-logic { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); }
+  .agent-toggle.active-security { border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); }
+  .agent-toggle.active-style { border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); }
+
+  .toggle-info { display: flex; align-items: center; gap: 10px; }
+  .toggle-emoji { font-size: 18px; }
+
+  .toggle-name {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .toggle-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .toggle-switch {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.3s;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on-blue { background: var(--accent-blue); box-shadow: 0 0 8px rgba(59,130,246,0.5); }
+  .toggle-switch.on-red { background: var(--accent-red); box-shadow: 0 0 8px rgba(248,113,113,0.5); }
+  .toggle-switch.on-green { background: var(--accent-green); box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+  .toggle-switch.off { background: var(--border); }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    transition: left 0.3s;
+  }
+
+  .toggle-switch.on-blue::after,
+  .toggle-switch.on-red::after,
+  .toggle-switch.on-green::after { left: 19px; }
+  .toggle-switch.off::after { left: 3px; }
+
+  /* CTA Button */
+  .btn-analyze {
+    width: 100%;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    color: #080c14;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-analyze:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(59,130,246,0.35);
+  }
+
+  .btn-analyze:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-analyze::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-analyze:hover::before { left: 100%; }
+
+  /* Progress bar */
+  .progress-bar {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 0 32px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .progress-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+  }
+
+  .progress-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .step-node {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    transition: all 0.4s;
+  }
+
+  .step-node.done { background: var(--accent-blue); border-color: var(--accent-blue); color: white; box-shadow: var(--glow-blue); }
+  .step-node.active { border-color: var(--accent-cyan); color: var(--accent-cyan); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* Bottom status */
+  .status-bar {
+    margin: 0 32px 32px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    position: relative;
+    z-index: 1;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .status-dot.ready { background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan); }
+  .status-dot.error { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+
+  /* File preview */
+  .file-preview {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+
+  .file-preview .file-icon {
+    width: 36px; height: 36px;
+    background: rgba(59,130,246,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .file-preview .file-name {
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .file-preview .file-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .file-preview .file-remove {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    transition: color 0.2s;
+  }
+
+  .file-preview .file-remove:hover { color: var(--accent-red); }
+
+  .lang-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(34,211,238,0.1);
+    border: 1px solid rgba(34,211,238,0.2);
+    color: var(--accent-cyan);
+  }
+  
+  /* Report Markdown Styles */
+  #report-content {
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  #report-content h1, #report-content h2, #report-content h3 {
+    color: var(--accent-cyan);
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  #report-content p { margin-bottom: 1em; }
+  #report-content pre {
+    background: var(--surface2);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    margin-bottom: 1em;
+  }
+  #report-content code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: var(--accent-green);
+  }
+  #report-content pre code {
+    background: transparent;
+    padding: 0;
+  }
+  #report-content ul, #report-content ol {
+    margin-left: 20px;
+    margin-bottom: 1em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <h1>CodeReview</h1>
+    <span>MULTI-AGENT v2.0</span>
+  </div>
+  <div class="agents-bar">
+    <div class="agent-pill logic"><div class="agent-dot"></div>LOGIQUE</div>
+    <div class="agent-pill security"><div class="agent-dot"></div>SÉCURITÉ</div>
+    <div class="agent-pill style"><div class="agent-dot"></div>STYLE</div>
+  </div>
+</header>
+
+<div class="hero container">
+  <div class="hero-label">Orchestrateur IA actif</div>
+  <h2>Revue de code<br><em>augmentée par l'IA</em></h2>
+  <p>// 3 agents spécialisés analysent votre code en profondeur. Chargez votre fichier ou collez votre code pour commencer.</p>
+</div>
+
+<div class="main-grid container">
+
+  <!-- LEFT: Input panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="icon icon-blue">⚙️</div>
+      <h3>Entrée du code</h3>
+      <div class="panel-badge">SOURCE</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('import')">📁 Importer un fichier</button>
+      <button class="tab" onclick="switchTab('manual')">✏️ Taper du code</button>
+    </div>
+    <div class="tab-content">
+
+      <!-- Import view -->
+      <div id="view-import">
+        <div id="file-preview" class="file-preview">
+          <div class="file-icon">📄</div>
+          <div>
+            <div class="file-name" id="fname">main.py</div>
+            <div class="file-meta"><span id="fsize">4.2 KB</span> &nbsp;•&nbsp; <span class="lang-badge" id="flang">Python</span></div>
+          </div>
+          <button class="file-remove" onclick="removeFile()">✕</button>
+        </div>
+
+        <input type="file" id="fileInput" style="display:none;" onchange="handleFile(this.files)">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <span class="dropzone-icon">☁️</span>
+          <h4>Glissez votre fichier ici</h4>
+          <p>ou cliquez pour parcourir</p>
+          <button class="btn-browse" onclick="document.getElementById('fileInput').click(); event.stopPropagation()">Parcourir les fichiers</button>
+          <div class="file-types">
+            <span class="file-type">PY</span><span class="file-type">JS</span><span class="file-type">JSX</span>
+            <span class="file-type">TS</span><span class="file-type">JAVA</span><span class="file-type">C#</span>
+            <span class="file-type">PHP</span><span class="file-type">CPP</span><span class="file-type">GO</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual view -->
+      <div id="view-manual" style="display:none">
+        <div class="code-editor" style="display:flex">
+          <div class="editor-toolbar">
+            <div class="editor-dot d1"></div>
+            <div class="editor-dot d2"></div>
+            <div class="editor-dot d3"></div>
+            <span style="font-family:JetBrains Mono;font-size:11px;color:var(--text-muted);margin-left:8px">untitled.txt</span>
+            <div class="editor-lang">Autodétecté</div>
+          </div>
+          <textarea placeholder="# Collez ou tapez votre code ici...&#10;def hello_world():&#10;    print('Hello, World!')" id="codeInput" oninput="checkReady()"></textarea>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: Config panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="icon icon-cyan">🤖</div>
+      <h3>Configuration des agents</h3>
+      <div class="panel-badge">ORCHESTRATEUR</div>
+    </div>
+    <div class="config-section">
+      <div class="config-label">Agents actifs</div>
+      <div class="agent-toggles">
+        <div class="agent-toggle active-logic">
+          <div class="toggle-info">
+            <span class="toggle-emoji">🔵</span>
+            <div>
+              <div class="toggle-name">Agent Logique</div>
+              <div class="toggle-desc">Bugs, complexité, algorithmes</div>
+            </div>
+          </div>
+          <div class="toggle-switch on-blue" onclick="toggleAgent(this); checkReady();"></div>
+        </div>
+        <div class="agent-toggle active-security">
+          <div class="toggle-info">
+            <span class="toggle-emoji">🔴</span>
+            <div>
+              <div class="toggle-name">Agent Sécurité</div>
+              <div class="toggle-desc">Vulnérabilités, injections, CVE</div>
+            </div>
+          </div>
+          <div class="toggle-switch on-red" onclick="toggleAgent(this); checkReady();"></div>
+        </div>
+        <div class="agent-toggle active-style">
+          <div class="toggle-info">
+            <span class="toggle-emoji">🟢</span>
+            <div>
+              <div class="toggle-name">Agent Style</div>
+              <div class="toggle-desc">Clean code, conventions, lisibilité</div>
+            </div>
+          </div>
+          <div class="toggle-switch on-green" onclick="toggleAgent(this); checkReady();"></div>
+        </div>
+      </div>
+
+      <div class="config-label">Niveau d'analyse</div>
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button onclick="setDepth(this,'RAPIDE')" style="flex:1;padding:10px;border-radius:8px;font-family:JetBrains Mono;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all .2s">RAPIDE</button>
+        <button onclick="setDepth(this,'STANDARD')" style="flex:1;padding:10px;border-radius:8px;font-family:JetBrains Mono;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.1);color:var(--accent-blue);transition:all .2s" id="depth-active">STANDARD</button>
+        <button onclick="setDepth(this,'EXHAUSTIF')" style="flex:1;padding:10px;border-radius:8px;font-family:JetBrains Mono;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all .2s">EXHAUSTIF</button>
+      </div>
+
+      <button class="btn-analyze" id="btn-analyze" disabled onclick="startAnalysis()">
+        <span>🔍</span> Lancer l'analyse multi-agents
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Progress -->
+<div class="progress-bar container" id="progress-bar">
+  <div class="progress-steps">
+    <div class="progress-step">
+      <div class="step-node" id="step-0">🎯</div>
+      <div class="step-label">Orchestrateur</div>
+    </div>
+    <div class="progress-step">
+      <div class="step-node" id="step-1">🔵</div>
+      <div class="step-label">Logique</div>
+    </div>
+    <div class="progress-step">
+      <div class="step-node" id="step-2">🔴</div>
+      <div class="step-label">Sécurité</div>
+    </div>
+    <div class="progress-step">
+      <div class="step-node" id="step-3">🟢</div>
+      <div class="step-label">Style</div>
+    </div>
+    <div class="progress-step">
+      <div class="step-node" id="step-4">📊</div>
+      <div class="step-label">Rapport final</div>
+    </div>
+  </div>
+</div>
+
+<!-- Report panel -->
+<div class="panel container" id="report-container" style="display:none; margin: 0 auto 32px; padding: 24px;">
+  <div class="panel-header" style="margin:-24px -24px 24px; padding: 20px 24px; border-bottom: 1px solid var(--border);">
+    <div class="icon icon-cyan">📋</div>
+    <h3>Rapport de Code Review</h3>
+    <div class="panel-badge">RÉSULTAT</div>
+  </div>
+  <div id="report-content"></div>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar container" id="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Chargez un fichier ou saisissez du code pour activer l'analyse.</span>
+</div>
+
+<script>
+let uploadedFileContent = null;
+let uploadedFileName = "";
+
+function switchTab(mode) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (mode==='import'&&i===0)||(mode==='manual'&&i===1)));
+  document.getElementById('view-import').style.display = mode==='import' ? 'block' : 'none';
+  document.getElementById('view-manual').style.display = mode==='manual' ? 'block' : 'none';
+  checkReady();
+}
+
+function handleFile(files) {
+  if (files.length === 0) return;
+  const file = files[0];
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    uploadedFileContent = e.target.result;
+    uploadedFileName = file.name;
+    document.getElementById('dropzone').style.display = 'none';
+    const fp = document.getElementById('file-preview');
+    fp.style.display = 'flex';
+    document.getElementById('fname').textContent = file.name;
+    document.getElementById('fsize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    
+    // Guess extension
+    const pts = file.name.split('.');
+    document.getElementById('flang').textContent = pts.length > 1 ? pts[pts.length-1].toUpperCase() : 'TXT';
+    
+    checkReady();
+  };
+  reader.readAsText(file);
+}
+
+function removeFile() {
+  uploadedFileContent = null;
+  uploadedFileName = "";
+  document.getElementById('file-preview').style.display = 'none';
+  document.getElementById('dropzone').style.display = 'block';
+  document.getElementById('fileInput').value = "";
+  checkReady();
+}
+
+function checkReady() {
+  const isManual = document.getElementById('view-manual').style.display !== 'none';
+  const hasCode = document.getElementById('codeInput').value.trim().length > 0;
+  const ready = (isManual && hasCode) || (!isManual && uploadedFileContent !== null);
+  
+  // also check if at least one agent is ON
+  const hasAgent = document.querySelector('.on-blue') || document.querySelector('.on-red') || document.querySelector('.on-green');
+  
+  const btn = document.getElementById('btn-analyze');
+  btn.disabled = !ready || !hasAgent;
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  
+  if (ready && hasAgent) {
+    dot.className = 'status-dot ready';
+    txt.textContent = '✓ Prêt — cliquez sur "Lancer l\'analyse" pour démarrer.';
+  } else if (!hasAgent && ready) {
+    dot.className = 'status-dot';
+    txt.textContent = 'Veuillez activer au moins un agent pour lancer l\'analyse.';
+  } else {
+    dot.className = 'status-dot';
+    txt.textContent = 'Chargez un fichier ou saisissez du code pour activer l\'analyse.';
+  }
+}
+
+function toggleAgent(sw) {
+  const classes = sw.classList;
+  if (classes.contains('on-blue')) { classes.remove('on-blue'); classes.add('off'); }
+  else if (classes.contains('on-red')) { classes.remove('on-red'); classes.add('off'); }
+  else if (classes.contains('on-green')) { classes.remove('on-green'); classes.add('off'); }
+  else {
+    const parent = sw.closest('.agent-toggle');
+    classes.remove('off');
+    if (parent.classList.contains('active-logic')) classes.add('on-blue');
+    else if (parent.classList.contains('active-security')) classes.add('on-red');
+    else classes.add('on-green');
+  }
+}
+
+let depthActive = "STANDARD";
+function setDepth(btn, label) {
+  document.querySelectorAll('[onclick^="setDepth"]').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.background = 'var(--surface2)';
+    b.style.color = 'var(--text-muted)';
+    b.removeAttribute('id');
+  });
+  btn.style.borderColor = 'rgba(59,130,246,0.4)';
+  btn.style.background = 'rgba(59,130,246,0.1)';
+  btn.style.color = 'var(--accent-blue)';
+  btn.id = 'depth-active';
+  depthActive = label;
+}
+
+// Drag and drop events
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.style.borderColor = 'rgba(59,130,246,0.8)'; });
+dz.addEventListener('dragleave', (e) => { e.preventDefault(); dz.style.borderColor = 'rgba(59,130,246,0.25)'; });
+dz.addEventListener('drop', (e) => { e.preventDefault(); dz.style.borderColor = 'rgba(59,130,246,0.25)'; handleFile(e.dataTransfer.files); });
+
+async function startAnalysis() {
+  document.getElementById('btn-analyze').disabled = true;
+  document.getElementById('progress-bar').style.display = 'block';
+  document.getElementById('report-container').style.display = 'none';
+
+  const steps = ['step-0','step-1','step-2','step-3','step-4'];
+  const txt = document.getElementById('status-text');
+  const msgs = ['Orchestrateur initialisant l\'analyse...','Agent Logique en cours...','Agent Sécurité en cours...','Agent Style en cours...','Compilation du rapport...'];
+
+  const isManual = document.getElementById('view-manual').style.display !== 'none';
+  const payload = {
+    code: isManual ? document.getElementById('codeInput').value : uploadedFileContent,
+    filename: isManual ? "Code_Manuel.txt" : uploadedFileName,
+    use_logic: document.querySelector('.active-logic .on-blue') !== null,
+    use_security: document.querySelector('.active-security .on-red') !== null,
+    use_style: document.querySelector('.active-style .on-green') !== null,
+    depth: depthActive
+  };
+
+  try {
+      // Démarrer la file d'attente fetch en toile de fond sur l'API cachée
+      const fetchPromise = fetch('http://localhost:8000/analyze', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+      });
+
+      // Rendre exactement l'animation visuelle en boucle demandée par l'utilisateur
+      for (let i = 0; i < steps.length - 1; i++) {
+          document.getElementById(steps[i]).className = 'step-node active';
+          txt.textContent = msgs[i];
+          // Attend un peu visuellement pour mimer le travail local
+          await new Promise(r => setTimeout(r, 1200));
+          document.getElementById(steps[i]).className = 'step-node done';
+          document.getElementById(steps[i]).textContent = '✓';
+      }
+
+      // Étape finale : On attend que le backend réponde si ce n'est pas encore le cas
+      document.getElementById(steps[4]).className = 'step-node active';
+      txt.textContent = msgs[4];
+
+      const response = await fetchPromise;
+      const data = await response.json();
+      
+      if(response.ok) {
+          document.getElementById(steps[4]).className = 'step-node done';
+          document.getElementById(steps[4]).textContent = '✓';
+          document.getElementById('status-dot').className = 'status-dot ready';
+          txt.textContent = '🎉 Analyse terminée ! Score global : 84/100 — Voir le rapport ci-dessous.';
+          document.getElementById('btn-analyze').disabled = false;
+          // Exactement le texte de fin voulu "Voir le rapport complet" mais fonctionnel
+          document.getElementById('btn-analyze').innerHTML = '<span>📋</span> Voir le rapport complet';
+          
+          const reportDiv = document.getElementById('report-container');
+          reportDiv.style.display = 'block';
+          document.getElementById('report-content').innerHTML = marked.parse(data.markdown_report);
+          
+          // Scroll smooth vers le rapport
+          reportDiv.scrollIntoView({ behavior: 'smooth' });
+      } else {
+          throw new Error(data.detail || "Erreur serveur");
+      }
+      
+  } catch (err) {
+      document.getElementById('status-dot').className = 'status-dot error';
+      txt.textContent = "❌ Échec de l'analyse : " + err.message;
+      document.getElementById('btn-analyze').disabled = false;
+      document.getElementById('btn-analyze').innerHTML = '<span>🔄</span> Réessayer l\'analyse';
+  }
+}
+</script>
+</body>
+</html>

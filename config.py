@@ -1,20 +1,30 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+load_dotenv(dotenv_path=env_path)
 
-# We use the deepseek model (llama-3.3-70b-versatile or similar) via Groq API
+openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 groq_api_key = os.environ.get("GROQ_API_KEY", "")
 
 from openai import AsyncOpenAI
-import agents.models._openai_shared as shared
+from agents import set_default_openai_client, set_default_openai_api
+from agents.tracing import set_tracing_disabled
 
-# Force openai-agents to use our custom OpenAI client pointing to Groq
-groq_client = AsyncOpenAI(
-    api_key=groq_api_key,
-    base_url="https://api.groq.com/openai/v1"
-)
-shared.set_default_openai_client(groq_client)
+if openai_api_key:
+    client = AsyncOpenAI(api_key=openai_api_key)
+    set_default_openai_client(client)
+    groq_model = "gpt-4o-mini"
 
-groq_model = "llama-3.3-70b-versatile"
+elif groq_api_key:
+    client = AsyncOpenAI(
+        api_key=groq_api_key,
+        base_url="https://api.groq.com/openai/v1"
+    )
+    set_default_openai_client(client)
+    set_default_openai_api("chat_completions")
+    set_tracing_disabled(True)
+    groq_model = "llama-3.1-8b-instant"
 
+else:
+    raise ValueError("Aucune clé API trouvée dans .env !")
